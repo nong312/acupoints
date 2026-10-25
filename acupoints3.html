@@ -17,7 +17,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
-        import { Box3, Vector3 } from 'three';
+       
         tailwind.config = {
             theme: {
                 extend: {
@@ -273,12 +273,13 @@
 
         // --- 加载 Anatomy Model.glb ---
         function loadGlbModel() {
-//import { Box3, Vector3 } from 'three';
+
 
             humanModelGroup = new THREE.Group();
             meridianLinesGroup = new THREE.Group();
 
             const loader = new THREE.GLTFLoader();
+            import { Box3, Vector3 } from 'three';
             loader.load('Anatomy Model.glb', (gltf) => {
                 loadedGlbModel = gltf.scene;
                 
