@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-        import { Box3, Vector3 } from 'three';
+       // import { Box3, Vector3 } from 'three';
         ></script>
     <!-- OrbitControls -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -290,9 +290,9 @@
                 loadedGlbModel.position.set(0, -0.5, 0);
 
 // 1. 计算模型的包围盒
-    const box = new Box3().setFromObject(loadedGlbModel);
-    const size = box.getSize(new Vector3());
-    const center = box.getCenter(new Vector3());
+    const box = new THREE.Box3().setFromObject(loadedGlbModel);
+    const size = THREE.box.getSize(new Vector3());
+    const center = THREE.box.getCenter(new Vector3());
 
     console.log('模型原始尺寸:', size);
     console.log('模型中心点:', center);
