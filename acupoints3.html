@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 中医经络穴位全息交互系统 - Anatomy Model.glb</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Noto Serif SC', 'serif'],
+                    },
+                    colors: {
+                        jade: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        motto: {
+                            dark: '#05070c',
+                            card: '#111827',
+                            border: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Serif SC', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #05070c; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
+    </style>
+</head>
+<body class="bg-motto-dark text-slate-100 h-full overflow-hidden flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 lg:px-6 py-3 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <i class="fa-solid fa-bone text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-serif font-bold text-lg lg:text-xl tracking-wide bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 bg-clip-text text-transparent">
+                    3D 中医经络穴位全息交互系统
+                </h1>
+                <p class="text-xs text-slate-400">Anatomy Model.glb Interactive Explorer</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-4">
+            <div class="hidden sm:flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+                <button onclick="resetCameraView('front')" class="px-3 py-1.5 rounded-lg bg-slate-700 text-white font-medium transition hover:bg-emerald-600">正面</button>
+                <button onclick="resetCameraView('back')" class="px-3 py-1.5 rounded-lg text-slate-300 font-medium transition hover:bg-slate-700 hover:text-white">背面</button>
+                <button onclick="resetCameraView('side')" class="px-3 py-1.5 rounded-lg text-slate-300 font-medium transition hover:bg-slate-700 hover:text-white">侧面</button>
+            </div>
+
+            <!-- Layer Selector -->
+            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+                <button onclick="setAnatomyLayer('all')" id="layer-all-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition">全解剖</button>
+                <button onclick="setAnatomyLayer('muscle')" id="layer-muscle-btn" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition">肌肉层</button>
+                <button onclick="setAnatomyLayer('skeleton')" id="layer-skeleton-btn" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition">骨骼层</button>
+            </div>
+
+            <button onclick="toggleMeridianLines()" id="line-toggle-btn" class="px-3 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-xs font-medium hover:bg-emerald-600 hover:text-white transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-route"></i>
+                <span class="hidden md:inline">经络循行</span>
+            </button>
+
+            <button onclick="toggleMobileSidebar()" class="lg:hidden p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex relative overflow-hidden">
+
+        <!-- 3D Canvas Viewport -->
+        <div class="flex-1 relative bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" id="canvas-container">
+            
+            <!-- Floating Controls -->
+            <div class="absolute bottom-6 left-6 z-10 flex flex-col space-y-2 pointer-events-auto">
+                <button onclick="toggleRotation()" id="rot-btn" class="w-11 h-11 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center text-slate-200 hover:bg-slate-800 hover:text-emerald-400 transition shadow-lg" title="自动旋转">
+                    <i class="fa-solid fa-rotate text-sm" id="rot-icon"></i>
+                </button>
+                <button onclick="toggleModelTransparency()" id="trans-btn" class="w-11 h-11 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center text-slate-200 hover:bg-slate-800 hover:text-emerald-400 transition shadow-lg" title="解剖透视">
+                    <i class="fa-solid fa-cube text-sm"></i>
+                </button>
+                <button onclick="resetCameraView('default')" class="w-11 h-11 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center text-slate-200 hover:bg-slate-800 hover:text-emerald-400 transition shadow-lg" title="重置视角">
+                    <i class="fa-solid fa-house text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Legend Overlay -->
+            <div class="absolute top-4 left-4 z-10 hidden sm:flex bg-slate-900/80 backdrop-blur border border-slate-800 p-3.5 rounded-xl text-xs space-y-2 flex-col max-w-xs shadow-2xl pointer-events-none">
+                <div class="font-semibold text-slate-200 flex items-center space-x-1.5 border-b border-slate-800 pb-1.5">
+                    <i class="fa-solid fa-circle-info text-emerald-400"></i>
+                    <span>GLB 模型加载说明</span>
+                </div>
+                <div class="flex items-center space-x-2 text-slate-400">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>已绑定 Anatomy Model.glb 高精模型</span>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center z-40 transition-opacity duration-500">
+                <div class="w-16 h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin mb-4"></div>
+                <h2 class="font-serif text-lg font-bold text-slate-200">正在加载 Anatomy Model.glb 模型...</h2>
+                <p class="text-xs text-slate-400 mt-1">请确保文件与网页在同一目录下</p>
+            </div>
+        </div>
+
+        <!-- Sidebar Panel -->
+        <aside id="sidebar" class="w-full sm:w-96 bg-slate-900 border-l border-slate-800 flex flex-col z-20 absolute inset-y-0 right-0 transform translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-2xl lg:relative">
+            
+            <div class="p-4 border-b border-slate-800 space-y-3 bg-slate-900/95">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-serif font-bold text-base flex items-center space-x-2 text-slate-200">
+                        <i class="fa-solid fa-book-medical text-emerald-400"></i>
+                        <span>经络穴位检索中心</span>
+                    </h2>
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="搜索穴位名称 (如: 合谷, 足三里)..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                </div>
+
+                <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs scrollbar-none" id="meridian-filters">
+                    <button onclick="filterByMeridian('ALL')" class="meridian-chip px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium shrink-0 transition">全部</button>
+                    <button onclick="filterByMeridian('手阳明大肠经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">大肠经</button>
+                    <button onclick="filterByMeridian('足阳明胃经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">胃经</button>
+                    <button onclick="filterByMeridian('督脉')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">督脉</button>
+                    <button onclick="filterByMeridian('手厥阴心包经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">心包经</button>
+                    <button onclick="filterByMeridian('足太阴脾经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">脾经</button>
+                    <button onclick="filterByMeridian('足少阳胆经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">胆经</button>
+                    <button onclick="filterByMeridian('足太阳膀胱经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">膀胱经</button>
+                    <button onclick="filterByMeridian('足少阴肾经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">肾经</button>
+                    <button onclick="filterByMeridian('足厥阴肝经')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">肝经</button>
+                    <button onclick="filterByMeridian('任脉')" class="meridian-chip px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0 transition">任脉</button>
+                </div>
+            </div>
+
+            <div class="flex border-b border-slate-800 bg-slate-900/50">
+                <button onclick="switchTab('list')" id="tab-list-btn" class="flex-1 py-3 text-xs font-semibold text-emerald-400 border-b-2 border-emerald-500 transition">
+                    <i class="fa-solid fa-list mr-1.5"></i> 穴位列表 (<span id="count-badge">0</span>)
+                </button>
+                <button onclick="switchTab('detail')" id="tab-detail-btn" class="flex-1 py-3 text-xs font-semibold text-slate-400 border-b-2 border-transparent transition">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i> 详细功效卡片
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4" id="sidebar-content">
+                <div id="acupoint-list-container" class="space-y-2.5"></div>
+                <div id="acupoint-detail-container" class="hidden space-y-4"></div>
+            </div>
+
+            <div class="p-3 bg-slate-950 border-t border-slate-800 text-center text-xs text-slate-500">
+                中医经络腧穴高仿真三维可视化系统 · 现代医学与传统中医结合
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        const acupointsData = [
+            { id: 'hegu', name: '合谷', pinyin: 'Hé Gǔ', code: 'LI4', meridian: '手阳明大肠经', location: '在手背，第1、2掌骨间，当第2掌骨桡侧的中点处。', indications: '头痛发热，目赤肿痛，鼻渊，齿痛，咽喉肿痛。', anatomyInfo: '布有桡神经浅支的掌背侧神经，深部有桡动脉的手背静脉网。', position: { x: 0.92, y: -0.25, z: 0.35 } },
+            { id: 'zusanli', name: '足三里', pinyin: 'Zú Sān Lǐ', code: 'ST36', meridian: '足阳明胃经', location: '在小腿外侧，犊鼻下3寸。', indications: '胃痛，呕吐，腹胀，肠鸣，泄泻，下肢水肿。', anatomyInfo: '在胫骨肌前肌、趾长伸肌之间；布有腓肠外侧皮神经。', position: { x: 0.35, y: -1.65, z: 0.18 } },
+            { id: 'baihui', name: '百会', pinyin: 'Bǎi Huì', code: 'GV20', meridian: '督脉', location: '在头部，当前发际正上5寸，或两耳尖连线中点处。', indications: '头痛，头晕，耳鸣，鼻塞，失眠。', anatomyInfo: '在帽状腱膜中；有枕动、静脉及颞浅动、静脉吻合网。', position: { x: 0.0, y: 2.32, z: -0.05 } },
+            { id: 'neiguan', name: '内关', pinyin: 'Nèi Guān', code: 'PC6', meridian: '手厥阴心包经', location: '在前臂掌侧，腕横纹上2寸。', indications: '心痛，心悸，胸闷，胃痛，呕吐。', anatomyInfo: '在桡侧腕屈肌腱与掌长肌腱之间。', position: { x: 0.78, y: -0.38, z: 0.4 } },
+            { id: 'taichong', name: '太冲', pinyin: 'Tài Chōng', code: 'LR3', meridian: '足厥阴肝经', location: '在足背，当第1、2跖骨结合部凹陷处。', indications: '头痛，眩晕，胁痛，口眼歪斜。', anatomyInfo: '有足背静脉网，第1跖背侧动脉。', position: { x: 0.45, y: -2.78, z: 0.62 } },
+            { id: 'sanyinjiao', name: '三阴交', pinyin: 'Sān Yīn Jiāo', code: 'SP6', meridian: '足太阴脾经', location: '在小腿内侧，当足内踝尖上3寸。', indications: '肠鸣腹胀，泄泻，月经不调。', anatomyInfo: '在胫骨后缘与比目鱼肌之间。', position: { x: -0.3, y: -1.85, z: -0.12 } },
+            { id: 'quchi', name: '曲池', pinyin: 'Qū Chí', code: 'LI11', meridian: '手阳明大肠经', location: '在肘横纹外侧端，屈肘取穴。', indications: '手臂痛，高血压，上肢不遂。', anatomyInfo: '在桡侧腕长伸肌起点、肱肌与肘关节囊之间。', position: { x: 1.05, y: 0.35, z: 0.12 } },
+            { id: 'feishu', name: '肺俞', pinyin: 'Fèi Shū', code: 'BL13', meridian: '足太阳膀胱经', location: '在背部，当第3胸椎棘突下，旁开1.5寸。', indications: '咳嗽，气喘，咯血，盗汗。', anatomyInfo: '有斜方肌、菱形肌，深层为竖脊肌。', position: { x: 0.28, y: 0.85, z: -0.52 } },
+            { id: 'guanyuan', name: '关元', pinyin: 'Guān Yuán', code: 'CV4', meridian: '任脉', location: '在下腹部，前正中线上，当脐下3寸。', indications: '遗精，阳痿，月经不调，虚劳冷惫。', anatomyInfo: '在腹白线上，深部为小肠。', position: { x: 0.0, y: -0.35, z: 0.52 } },
+            { id: 'shenshu', name: '肾俞', pinyin: 'Shèn Shū', code: 'BL23', meridian: '足太阳膀胱经', location: '在背部，当第2腰椎棘突下，旁开1.5寸。', indications: '遗精，阳痿，水肿，耳鸣，腰痛。', anatomyInfo: '有背阔肌、竖脊肌。', position: { x: 0.3, y: -0.05, z: -0.5 } },
+            { id: 'zhongwan', name: '中脘', pinyin: 'Zhōng Wǎn', code: 'CV12', meridian: '任脉', location: '在上腹部，前正中线上，当脐上4寸。', indications: '胃痛，腹胀，呕吐，呃逆。', anatomyInfo: '在腹白线上，深部为胃体上部。', position: { x: 0.0, y: 0.35, z: 0.52 } },
+            { id: 'yanglingquan', name: '阳陵泉', pinyin: 'Yáng Líng Quán', code: 'GB34', meridian: '足少阳胆经', location: '在小腿外侧，腓骨小头前下方凹陷处。', indications: '黄疸，胁痛，口苦，膝肿痛。', anatomyInfo: '在腓骨长、短肌起始部。', position: { x: 0.4, y: -1.48, z: -0.08 } }
+        ];
+
+        let scene, camera, renderer, controls;
+        let humanModelGroup;
+        let meridianLinesGroup;
+        let acupointMeshes = [];
+        let raycaster, mouse;
+        let selectedAcupoint = null;
+        let isAutoRotating = false;
+        let isTransparent = false;
+        let showMeridianLines = true;
+        let currentFilter = 'ALL';
+        let currentSearchQuery = '';
+        let loadedGlbModel = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            buildAcupointList();
+        });
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x05070c);
+            scene.fog = new THREE.FogExp2(0x05070c, 0.035);
+
+            camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0.2, 5.8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 2;
+            controls.maxDistance = 12;
+            controls.maxPolarAngle = Math.PI - 0.1;
+            controls.target.set(0, 0, 0);
+
+            const ambientLight = new THREE.AmbientLight(0xe2e8f0, 0.9);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            mainLight.position.set(4, 10, 6);
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
+            fillLight.position.set(-5, -2, -4);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.PointLight(0x10b981, 2.0, 6);
+            rimLight.position.set(0, 1.5, 2);
+            scene.add(rimLight);
+
+            loadGlbModel();
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        // --- 加载 Anatomy Model.glb ---
+        function loadGlbModel() {
+import { Box3, Vector3 } from 'three';
+
+            humanModelGroup = new THREE.Group();
+            meridianLinesGroup = new THREE.Group();
+
+            const loader = new THREE.GLTFLoader();
+            loader.load('Anatomy Model.glb', (gltf) => {
+                loadedGlbModel = gltf.scene;
+                
+                // 调整模型的缩放与偏移（如果你的模型尺寸偏大或偏小，可在这里调整 scale）
+               // loadedGlbModel.scale.set(1, 1, 1);
+               // loadedGlbModel.position.set(0, -0.5, 0);
+
+
+// 1. 计算模型的包围盒
+    const box = new Box3().setFromObject(loadedGlbModel);
+    const size = box.getSize(new Vector3());
+    const center = box.getCenter(new Vector3());
+
+    console.log('模型原始尺寸:', size);
+    console.log('模型中心点:', center);
+
+    // 2. 如果模型中心不在 (0,0,0)，可以把模型的几何中心平移到原点
+    // 或者调整你的穴位坐标来匹配模型的偏移量
+    loadedGlbModel.position.sub(center); // 让模型以自身中心对齐原点
+
+    // 3. （可选）如果你发现穴位和模型相对位置对不上，
+    // 检查你的穴位坐标是不是基于某种特定的世界坐标系获取的。
+
+
+                humanModelGroup.add(loadedGlbModel);
+                scene.add(humanModelGroup);
+
+                createAcupointMarkersAndLines();
+
+                const loaderEl = document.getElementById('loading-overlay');
+                if(loaderEl) {
+                    loaderEl.style.opacity = '0';
+                    setTimeout(() => loaderEl.remove(), 500);
+                }
+            }, undefined, (error) => {
+                console.error('加载 Anatomy Model.glb 失败:', error);
+                const loaderEl = document.getElementById('loading-overlay');
+                if(loaderEl) {
+                    loaderEl.innerHTML = `
+                        <div class="text-center p-6 max-w-md">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400 text-3xl mb-3"></i>
+                            <h2 class="font-serif text-base font-bold text-slate-200">无法加载 Anatomy Model.glb</h2>
+                            <p class="text-xs text-slate-400 mt-2">请确认文件已放在网页同级目录下，并且文件名正确无误。</p>
+                        </div>
+                    `;
+                }
+                scene.add(humanModelGroup);
+                createAcupointMarkersAndLines();
+            });
+        }
+
+        function createAcupointMarkersAndLines() {
+            const sphereGeo = new THREE.SphereGeometry(0.045, 32, 32);
+
+            acupointsData.forEach(point => {
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x10b981,
+                    emissive: 0x059669,
+                    emissiveIntensity: 0.85,
+                    roughness: 0.15
+                });
+
+                const mesh = new THREE.Mesh(sphereGeo, mat);
+                mesh.position.set(point.position.x, point.position.y, point.position.z);
+                mesh.userData = { pointId: point.id, pointData: point };
+
+                scene.add(mesh);
+                acupointMeshes.push(mesh);
+            });
+
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.45, linewidth: 2 });
+            const pointsList = [new THREE.Vector3(0.92, -0.25, 0.35), new THREE.Vector3(1.05, 0.35, 0.12)];
+            const geometry = new THREE.BufferGeometry().setFromPoints(pointsList);
+            meridianLinesGroup.add(new THREE.Line(geometry, lineMat));
+
+            scene.add(meridianLinesGroup);
+        }
+
+        function setAnatomyLayer(layer) {
+            const btnAll = document.getElementById('layer-all-btn');
+            const btnMuscle = document.getElementById('layer-muscle-btn');
+            const btnSkeleton = document.getElementById('layer-skeleton-btn');
+
+            btnAll.className = 'px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition';
+            btnMuscle.className = 'px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition';
+            btnSkeleton.className = 'px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition';
+
+            if (layer === 'all') btnAll.className = 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition';
+            if (layer === 'muscle') btnMuscle.className = 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition';
+            if (layer === 'skeleton') btnSkeleton.className = 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition';
+
+            if (loadedGlbModel) {
+                loadedGlbModel.traverse(child => {
+                    if (child.isMesh) {
+                        const name = child.name.toLowerCase();
+                        if (layer === 'all') child.visible = true;
+                        if (layer === 'skeleton') child.visible = name.includes('bone') || name.includes('skeleton') || name.includes('skull');
+                        if (layer === 'muscle') child.visible = !child.visible; // 可根据模型的节点命名规则自定义过滤
+                    }
+                });
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isAutoRotating && humanModelGroup) {
+                humanModelGroup.rotation.y += 0.004;
+                meridianLinesGroup.rotation.y += 0.004;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function onCanvasClick(event) {
+            const container = document.getElementById('canvas-container');
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(acupointMeshes);
+            if (intersects.length > 0) {
+                selectAcupoint(intersects[0].object.userData.pointId);
+            }
+        }
+
+        function selectAcupoint(id) {
+            const point = acupointsData.find(p => p.id === id);
+            if (!point) return;
+            selectedAcupoint = point;
+
+            acupointMeshes.forEach(mesh => {
+                if (mesh.userData.pointId === id) {
+                    mesh.material.color.setHex(0xf59e0b);
+                    mesh.scale.set(1.6, 1.6, 1.6);
+                } else {
+                    mesh.material.color.setHex(0x10b981);
+                    mesh.scale.set(1, 1, 1);
+                }
+            });
+
+            const targetPos = new THREE.Vector3(point.position.x, point.position.y, point.position.z);
+            controls.target.copy(targetPos);
+            const direction = camera.position.clone().sub(targetPos).normalize();
+            camera.position.copy(targetPos).add(direction.multiplyScalar(2.1));
+
+            switchTab('detail');
+            renderDetailCard(point);
+
+            if(window.innerWidth < 1024) document.getElementById('sidebar').classList.remove('translate-x-full');
+        }
+
+        function buildAcupointList() {
+            const container = document.getElementById('acupoint-list-container');
+            container.innerHTML = '';
+            const filtered = acupointsData.filter(p => {
+                return (currentFilter === 'ALL' || p.meridian === currentFilter) &&
+                       (p.name.includes(currentSearchQuery) || p.code.toLowerCase().includes(currentSearchQuery.toLowerCase()));
+            });
+
+            document.getElementById('count-badge').textContent = filtered.length;
+
+            filtered.forEach(point => {
+                const card = document.createElement('div');
+                card.className = 'p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-emerald-500/50 cursor-pointer transition flex items-center justify-between group';
+                card.onclick = () => selectAcupoint(point.id);
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold group-hover:bg-emerald-500 group-hover:text-white transition">${point.name[0]}</div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h3 class="font-bold text-slate-200 group-hover:text-emerald-400 transition">${point.name}</h3>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">${point.code}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">${point.meridian}</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-emerald-400 transition"></i>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderDetailCard(point) {
+            document.getElementById('acupoint-detail-container').innerHTML = `
+                <div class="bg-slate-950/85 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">${point.meridian}</span>
+                            <h2 class="font-serif font-bold text-2xl text-white mt-2">${point.name} (${point.code})</h2>
+                        </div>
+                        <button onclick="switchTab('list')" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">返回</button>
+                    </div>
+                    <div class="space-y-3 pt-2 border-t border-slate-800 text-xs">
+                        <p class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><b>定位：</b>${point.location}</p>
+                        <p class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><b>解剖对照：</b>${point.anatomyInfo}</p>
+                        <p class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><b>主治功效：</b>${point.indications}</p>
+                    </div>
+                    <button onclick="focusOnAcupoint('${point.id}')" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg transition">聚焦 3D 视角</button>
+                </div>
+            `;
+        }
+
+        function switchTab(tab) {
+            document.getElementById('acupoint-list-container').classList.toggle('hidden', tab !== 'list');
+            document.getElementById('acupoint-detail-container').classList.toggle('hidden', tab !== 'detail');
+        }
+
+        function filterByMeridian(meridian) {
+            currentFilter = meridian;
+            buildAcupointList();
+        }
+
+        function handleSearch(q) {
+            currentSearchQuery = q.trim();
+            buildAcupointList();
+        }
+
+        function toggleRotation() {
+            isAutoRotating = !isAutoRotating;
+            document.getElementById('rot-btn').classList.toggle('bg-emerald-600', isAutoRotating);
+        }
+
+        function toggleModelTransparency() {
+            isTransparent = !isTransparent;
+            if (loadedGlbModel) {
+                loadedGlbModel.traverse(c => {
+                    if (c.isMesh && c.material) {
+                        c.material.transparent = true;
+                        c.material.opacity = isTransparent ? 0.3 : 1.0;
+                        c.material.needsUpdate = true;
+                    }
+                });
+            }
+        }
+
+        function toggleMeridianLines() {
+            showMeridianLines = !showMeridianLines;
+            meridianLinesGroup.visible = showMeridianLines;
+        }
+
+        function resetCameraView(v) {
+            isAutoRotating = false;
+            controls.target.set(0, 0, 0);
+            if (v === 'front') camera.position.set(0, 0.2, 5.8);
+            if (v === 'back') camera.position.set(0, 0.2, -5.8);
+            if (v === 'side') camera.position.set(5.8, 0.2, 0);
+        }
+
+        function focusOnAcupoint(id) { selectAcupoint(id); }
+        function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('translate-x-full'); }
+    </script>
+</body>
+</html>
