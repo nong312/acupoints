@@ -7,7 +7,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+        import { Box3, Vector3 } from 'three';
+        ></script>
     <!-- OrbitControls -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <!-- GLTFLoader -->
@@ -279,7 +281,7 @@
             meridianLinesGroup = new THREE.Group();
 
             const loader = new THREE.GLTFLoader();
-            import { Box3, Vector3 } from 'three';
+            
             loader.load('Anatomy Model.glb', (gltf) => {
                 loadedGlbModel = gltf.scene;
                 
