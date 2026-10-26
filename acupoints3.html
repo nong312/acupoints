@@ -303,7 +303,7 @@ function loadGlbModel() {
         const maxDim = Math.max(size.x, size.y, size.z);
 
         loadedGlbModel.position.x -= center.x;
-        loadedGlbModel.position.y -= center.y;
+        loadedGlbModel.position.y -= center.y-20;
         loadedGlbModel.position.z -= center.z;
 
         // 2. 将旋转中心锁定在原点
