@@ -286,7 +286,9 @@
                 // 调整模型的缩放与偏移（如果你的模型尺寸偏大或偏小，可在这里调整 scale）
                 loadedGlbModel.scale.set(10, 10, 10);
                 loadedGlbModel.position.set(0.5, 0.5, 0.5);
-
+camera.position.set(0, 2, 10); // 将相机拉近到距离模型 10 米左右
+controls.target.set(0, 2.5, 0); // 把旋转中心对准模型身体的中部
+controls.update();
 // 1. 计算模型的包围盒
     const box = new THREE.Box3().setFromObject(loadedGlbModel);
     const size = box.getSize(new THREE.Vector3());
