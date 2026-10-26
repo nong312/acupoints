@@ -281,28 +281,29 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 1. 先计算模型的原始包围盒和中心点，并把模型平移到几何原点 (0,0,0)
-        const boxBefore = new THREE.Box3().setFromObject(loadedGlbModel);
-        const centerBefore = boxBefore.getCenter(new THREE.Vector3());
-        loadedGlbModel.position.sub(centerBefore); 
-
-        // 2. 模型平移归位后，重新获取它的包围盒和尺寸
+        // 1. 先用 Box3 严格包裹整个模型
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
-        const center = box.getCenter(new THREE.Vector3()); // 此时 center 的 x, y, z 已经是 (0,0,0) 附近
+        const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // 3. 设置 OrbitControls 旋转中心对准模型中心
+        // 2. 将模型的几何中心直接平移到绝对原点 (0,0,0)
+        loadedGlbModel.position.x -= center.x;
+        loadedGlbModel.position.y -= center.y;
+        loadedGlbModel.position.z -= center.z;
+
+        // 3. 将 OrbitControls 的旋转中心锁定在正原点 (0,0,0)
         if (typeof controls !== 'undefined') {
-            controls.target.copy(center);
+            controls.target.set(0, 0, 0);
         }
 
-        // 4. 设置相机位置（使用 1.5 倍系数，让模型饱满地显示在屏幕中）
+        // 4. 【让模型变大的关键】把相机拉得非常近！
         if (typeof camera !== 'undefined') {
-            const distance = maxDim * 1.5; 
+            // 将距离系数从 1.5 缩小到 0.8 甚至 1.0，让模型撑满整个屏幕
+            const distance = maxDim * 0.9; 
             
-            // 相机正对原点，高度稍微向上偏移一点（对准上半身）
-            camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
+            // 相机正对原点 (0,0,0)，高度稍微抬高一点点以便观察全身
+            camera.position.set(0, size.y * 0.05, distance);
             
             camera.near = maxDim * 0.001;
             camera.far = maxDim * 100;
@@ -312,7 +313,7 @@ function loadGlbModel() {
                 controls.update();
             }
             
-            console.log("【调整完毕】当前相机距离:", distance);
+            console.log("【尺寸重置】模型最大尺寸:", maxDim, "当前相机距离:", distance);
         }
 
         humanModelGroup.add(loadedGlbModel);
