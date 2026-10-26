@@ -548,7 +548,7 @@ function loadGlbModel() {
         function resetCameraView(v) {
             isAutoRotating = false;
             controls.target.set(0, 0, 0);
-            if (v === 'front') camera.position.set(0, 0.2, 5.8);
+            if (v === 'front') camera.position.set(0, 5.8, 0.2);//(0, 0.2, 5.8);
             if (v === 'back') camera.position.set(0, 0.2, -5.8);
             if (v === 'side') camera.position.set(5.8, 0.2, 0);
         }
