@@ -281,31 +281,26 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 1. 【核心修改】大幅放大模型（如果还是小，可以把 100 改成 200 或 500）
-        const scaleFactor = 100; 
-        loadedGlbModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        // 🚨 保持模型原始比例和初始位置（不强行平移缩放，防止和穴位坐标错位）
+        // 如果你的穴位是基于模型原始原点设计的，这里直接使用即可
 
-        // 2. 重新计算放大后的包围盒并居中对齐到原点 (0,0,0)
+        // 1. 仅获取包围盒来计算相机应该看哪里
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        loadedGlbModel.position.x -= center.x;
-        loadedGlbModel.position.y -= center.y;
-        loadedGlbModel.position.z -= center.z;
-
-        // 3. 将旋转中心锁定在原点
+        // 2. 将控制器的旋转中心对准模型自身的中心
         if (typeof controls !== 'undefined') {
-            controls.target.set(0, 0, 0);
+            controls.target.copy(center);
         }
 
-        // 4. 根据放大后的尺寸自动调整相机视距
+        // 3. 调整相机，让镜头贴近模型
         if (typeof camera !== 'undefined') {
             const distance = maxDim * 1.5; 
             
-            // 相机正对原点，高度微微抬高对准上半身
-            camera.position.set(0, size.y * 0.05, distance);
+            // 以模型中心为基准拉近相机
+            camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
             
             camera.near = maxDim * 0.001;
             camera.far = maxDim * 100;
@@ -315,12 +310,13 @@ function loadGlbModel() {
                 controls.update();
             }
             
-            console.log("【模型已大幅放大】当前缩放倍数:", scaleFactor, "模型高度:", size.y);
+            console.log("【保持原始坐标】模型中心:", center, "当前相机距离:", distance);
         }
 
         humanModelGroup.add(loadedGlbModel);
         scene.add(humanModelGroup);
 
+        // 生成穴位（它们会使用原本的坐标系）
         createAcupointMarkersAndLines();
 
         const loaderEl = document.getElementById('loading-overlay');
