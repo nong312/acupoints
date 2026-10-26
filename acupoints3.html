@@ -272,116 +272,75 @@
         }
 
         // --- 加载 Anatomy Model.glb ---
-        function loadGlbModel() {
+       function loadGlbModel() {
+    humanModelGroup = new THREE.Group();
+    meridianLinesGroup = new THREE.Group();
 
+    const loader = new THREE.GLTFLoader();
+    
+    loader.load('Anatomy Model.glb', (gltf) => {
+        loadedGlbModel = gltf.scene;
 
-            humanModelGroup = new THREE.Group();
-            meridianLinesGroup = new THREE.Group();
+        // 1. 先把模型平移到几何原点（让它的中心对准 0,0,0）
+        const tempBox = new THREE.Box3().setFromObject(loadedGlbModel);
+        const tempCenter = tempBox.getCenter(new THREE.Vector3());
+        loadedGlbModel.position.sub(tempCenter); 
 
-            const loader = new THREE.GLTFLoader();
-            
-            loader.load('Anatomy Model.glb', (gltf) => {
-                loadedGlbModel = gltf.scene;
+        // 2. 重新获取平移后的包围盒与尺寸
+        const box = new THREE.Box3().setFromObject(loadedGlbModel);
+        const center = box.getCenter(new THREE.Vector3()); // 此时 center 应该是 (0,0,0) 附近
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
 
-// 1. 获取当前模型（尝试常见变量名）
-//let targetModel = window.model || window.mesh || scene.children.find(c => c.isGroup || c.isMesh);
-
-if (loadedGlbModel) {
-    const box = new THREE.Box3().setFromObject(loadedGlbModel);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-
-    // 2. 精准对准模型身体中心（比如胸腹部或整体中心）
-    if (typeof controls !== 'undefined') {
-        controls.target.copy(center);
-    }
-
-    if (typeof camera !== 'undefined') {
-        // 【关键调整】把系数从 2.5 改小到 1.5，让相机离得更近，模型在屏幕里显得更大！
-        const distance = maxDim * 1.5; 
-        
-        // 设置相机位置：正前方，高度稍微向上一点（对准上半身）
-        camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
-        
-        camera.near = maxDim * 0.001;
-        camera.far = maxDim * 100;
-        camera.updateProjectionMatrix();
-        
+        // 3. 设置 OrbitControls 旋转中心
         if (typeof controls !== 'undefined') {
-            controls.update();
+            controls.target.copy(center);
         }
-        
-        console.log("【调整完毕】当前相机距离:", distance);
-    }
-} else {
-    console.log("未找到模型对象，请检查变量");
+
+        // 4. 设置相机位置（使用 1.5 倍系数，让模型充满视野）
+        if (typeof camera !== 'undefined') {
+            const distance = maxDim * 1.5; 
+            
+            // 因为模型已经居中在原点，这里直接以 center 为基准设置前方微抬高的视角
+            camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
+            
+            camera.near = maxDim * 0.001;
+            camera.far = maxDim * 100;
+            camera.updateProjectionMatrix();
+            
+            if (typeof controls !== 'undefined') {
+                controls.update();
+            }
+            
+            console.log("【调整完毕】当前相机距离:", distance);
+        }
+
+        humanModelGroup.add(loadedGlbModel);
+        scene.add(humanModelGroup);
+
+        createAcupointMarkersAndLines();
+
+        const loaderEl = document.getElementById('loading-overlay');
+        if(loaderEl) {
+            loaderEl.style.opacity = '0';
+            setTimeout(() => loaderEl.remove(), 500);
+        }
+    }, undefined, (error) => {
+        console.error('加载 Anatomy Model.glb 失败:', error);
+        const loaderEl = document.getElementById('loading-overlay');
+        if(loaderEl) {
+            loaderEl.innerHTML = `
+                <div class="text-center p-6 max-w-md">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-3xl mb-3"></i>
+                    <h2 class="font-serif text-base font-bold text-slate-200">无法加载 Anatomy Model.glb</h2>
+                    <p class="text-xs text-slate-400 mt-2">请确认文件已放在网页同级目录下，并且文件名正确无误。</p>
+                </div>
+            `;
+        }
+        scene.add(humanModelGroup);
+        createAcupointMarkersAndLines();
+    });
 }
-
-
-
-
-                
-                // 调整模型的缩放与偏移（如果你的模型尺寸偏大或偏小，可在这里调整 scale）
-              //  loadedGlbModel.scale.set(10, 10, 10);
-              //  loadedGlbModel.position.set(0.5, 0.5, 0.5);
-//camera.position.set(0, 2, 7.3); // 将相机拉近到距离模型 10 米左右
-//controls.target.set(0, 2.5, 0); // 把旋转中心对准模型身体的中部
-//controls.update();
-
-
-
-// 如果你想把它整体缩放（比如缩放到合适比例）
-// const maxDim = Math.max(size.x, size.y, size.z);
-// const scale = 2 / maxDim; // 假设你想让它最大尺寸为 2
-// model.scale.multiplyScalar(scale);
-
-
-
-
-                
-// 1. 计算模型的包围盒
-//    const box = new THREE.Box3().setFromObject(loadedGlbModel);
-//    const size = box.getSize(new THREE.Vector3());
-//    const center = box.getCenter(new THREE.Vector3());
-
-//    console.log('模型原始尺寸:', size);
-//    console.log('模型中心点:', center);
-
-    // 2. 如果模型中心不在 (0,0,0)，可以把模型的几何中心平移到原点
-    // 或者调整你的穴位坐标来匹配模型的偏移量
-    loadedGlbModel.position.sub(center); // 让模型以自身中心对齐原点
-
-    // 3. （可选）如果你发现穴位和模型相对位置对不上，
-    // 检查你的穴位坐标是不是基于某种特定的世界坐标系获取的。
-
-
-                humanModelGroup.add(loadedGlbModel);
-                scene.add(humanModelGroup);
-
-                createAcupointMarkersAndLines();
-
-                const loaderEl = document.getElementById('loading-overlay');
-                if(loaderEl) {
-                    loaderEl.style.opacity = '0';
-                    setTimeout(() => loaderEl.remove(), 500);
-                }
-            }, undefined, (error) => {
-                console.error('加载 Anatomy Model.glb 失败:', error);
-                const loaderEl = document.getElementById('loading-overlay');
-                if(loaderEl) {
-                    loaderEl.innerHTML = `
-                        <div class="text-center p-6 max-w-md">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-400 text-3xl mb-3"></i>
-                            <h2 class="font-serif text-base font-bold text-slate-200">无法加载 Anatomy Model.glb</h2>
-                            <p class="text-xs text-slate-400 mt-2">请确认文件已放在网页同级目录下，并且文件名正确无误。</p>
-                        </div>
-                    `;
-                }
-                scene.add(humanModelGroup);
-                createAcupointMarkersAndLines();
-            });
-        }
 
         function createAcupointMarkersAndLines() {
             const sphereGeo = new THREE.SphereGeometry(0.045, 32, 32);
