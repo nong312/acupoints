@@ -272,7 +272,7 @@
         }
 
         // --- 加载 Anatomy Model.glb ---
-       function loadGlbModel() {
+  function loadGlbModel() {
     humanModelGroup = new THREE.Group();
     meridianLinesGroup = new THREE.Group();
 
@@ -281,27 +281,27 @@
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 1. 先把模型平移到几何原点（让它的中心对准 0,0,0）
-        const tempBox = new THREE.Box3().setFromObject(loadedGlbModel);
-        const tempCenter = tempBox.getCenter(new THREE.Vector3());
-        loadedGlbModel.position.sub(tempCenter); 
+        // 1. 先计算模型的原始包围盒和中心点，并把模型平移到几何原点 (0,0,0)
+        const boxBefore = new THREE.Box3().setFromObject(loadedGlbModel);
+        const centerBefore = boxBefore.getCenter(new THREE.Vector3());
+        loadedGlbModel.position.sub(centerBefore); 
 
-        // 2. 重新获取平移后的包围盒与尺寸
+        // 2. 模型平移归位后，重新获取它的包围盒和尺寸
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
-        const center = box.getCenter(new THREE.Vector3()); // 此时 center 应该是 (0,0,0) 附近
+        const center = box.getCenter(new THREE.Vector3()); // 此时 center 的 x, y, z 已经是 (0,0,0) 附近
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // 3. 设置 OrbitControls 旋转中心
+        // 3. 设置 OrbitControls 旋转中心对准模型中心
         if (typeof controls !== 'undefined') {
             controls.target.copy(center);
         }
 
-        // 4. 设置相机位置（使用 1.5 倍系数，让模型充满视野）
+        // 4. 设置相机位置（使用 1.5 倍系数，让模型饱满地显示在屏幕中）
         if (typeof camera !== 'undefined') {
             const distance = maxDim * 1.5; 
             
-            // 因为模型已经居中在原点，这里直接以 center 为基准设置前方微抬高的视角
+            // 相机正对原点，高度稍微向上偏移一点（对准上半身）
             camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
             
             camera.near = maxDim * 0.001;
