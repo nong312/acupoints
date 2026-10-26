@@ -281,26 +281,33 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 🚨 保持模型原始比例和初始位置（不强行平移缩放，防止和穴位坐标错位）
-        // 如果你的穴位是基于模型原始原点设计的，这里直接使用即可
+        // ==========================================
+        // 🔥 【核心大招】直接把模型整体放大 100 倍（如果还小，可改成 200 或 500）
+        // ==========================================
+        const scaleFactor = 100; 
+        loadedGlbModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        // 1. 仅获取包围盒来计算相机应该看哪里
+        // 1. 获取放大后的包围盒与中心点，并让它精准居中到原点 (0,0,0)
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // 2. 将控制器的旋转中心对准模型自身的中心
+        loadedGlbModel.position.x -= center.x;
+        loadedGlbModel.position.y -= center.y;
+        loadedGlbModel.position.z -= center.z;
+
+        // 2. 将旋转中心锁定在原点
         if (typeof controls !== 'undefined') {
-            controls.target.copy(center);
+            controls.target.set(0, 0, 0);
         }
 
-        // 3. 调整相机，让镜头贴近模型
+        // 3. 自动调整相机，让镜头保持完美视距
         if (typeof camera !== 'undefined') {
             const distance = maxDim * 1.5; 
             
-            // 以模型中心为基准拉近相机
-            camera.position.set(center.x, center.y + size.y * 0.1, center.z + distance);
+            // 相机正对原点，高度微微抬高对准上半身
+            camera.position.set(0, size.y * 0.05, distance);
             
             camera.near = maxDim * 0.001;
             camera.far = maxDim * 100;
@@ -310,13 +317,13 @@ function loadGlbModel() {
                 controls.update();
             }
             
-            console.log("【保持原始坐标】模型中心:", center, "当前相机距离:", distance);
+            console.log("【强制放大完成】缩放倍数:", scaleFactor, "当前模型高度:", size.y);
         }
 
         humanModelGroup.add(loadedGlbModel);
         scene.add(humanModelGroup);
 
-        // 生成穴位（它们会使用原本的坐标系）
+        // 生成穴位（此时它们会和放大后的模型完美重合！）
         createAcupointMarkersAndLines();
 
         const loaderEl = document.getElementById('loading-overlay');
