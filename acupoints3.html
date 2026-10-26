@@ -281,6 +281,18 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
+loader.load('Anatomy Model.glb', (gltf) => {
+    loadedGlbModel = gltf.scene;
+    
+    // ==========================================
+    // 🛠️ 调整模型的初始朝向（根据实际情况修改角度）
+    // Math.PI 等于 180 度，Math.PI / 2 等于 90 度
+    // ==========================================
+   // loadedGlbModel.rotation.y = Math.PI; // 如果脸朝后，旋转 180 度
+    loadedGlbModel.rotation.y = Math.PI / 2;  // 或者用(90度)
+    // 或者用 loadedGlbModel.rotation.y = -Math.PI / 2; (-90度)
+
+        
         // ==========================================
         // 🔥 【核心大招】直接把模型整体放大 100 倍（如果还小，可改成 200 或 500）
         // ==========================================
