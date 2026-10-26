@@ -281,11 +281,11 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 1. 【关键修复】如果模型本身物理尺寸太小，在这里整体放大（例如放大 10 倍，你可以根据需要改成 5、15 或 20）
-        const scaleFactor = 10; 
+        // 1. 【核心修改】大幅放大模型（如果还是小，可以把 100 改成 200 或 500）
+        const scaleFactor = 100; 
         loadedGlbModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        // 2. 获取放大后的包围盒与中心点，并让它精准居中到原点 (0,0,0)
+        // 2. 重新计算放大后的包围盒并居中对齐到原点 (0,0,0)
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -300,9 +300,9 @@ function loadGlbModel() {
             controls.target.set(0, 0, 0);
         }
 
-        // 4. 设置相机距离
+        // 4. 根据放大后的尺寸自动调整相机视距
         if (typeof camera !== 'undefined') {
-            const distance = maxDim * 1.5; // 放大后用 1.5 倍距离可以完美包裹
+            const distance = maxDim * 1.5; 
             
             // 相机正对原点，高度微微抬高对准上半身
             camera.position.set(0, size.y * 0.05, distance);
@@ -315,7 +315,7 @@ function loadGlbModel() {
                 controls.update();
             }
             
-            console.log("【已缩放并居中】放大倍数:", scaleFactor, "当前相机距离:", distance);
+            console.log("【模型已大幅放大】当前缩放倍数:", scaleFactor, "模型高度:", size.y);
         }
 
         humanModelGroup.add(loadedGlbModel);
