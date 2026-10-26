@@ -281,28 +281,30 @@ function loadGlbModel() {
     loader.load('Anatomy Model.glb', (gltf) => {
         loadedGlbModel = gltf.scene;
 
-        // 1. 先用 Box3 严格包裹整个模型
+        // 1. 【关键修复】如果模型本身物理尺寸太小，在这里整体放大（例如放大 10 倍，你可以根据需要改成 5、15 或 20）
+        const scaleFactor = 10; 
+        loadedGlbModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+        // 2. 获取放大后的包围盒与中心点，并让它精准居中到原点 (0,0,0)
         const box = new THREE.Box3().setFromObject(loadedGlbModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // 2. 将模型的几何中心直接平移到绝对原点 (0,0,0)
         loadedGlbModel.position.x -= center.x;
         loadedGlbModel.position.y -= center.y;
         loadedGlbModel.position.z -= center.z;
 
-        // 3. 将 OrbitControls 的旋转中心锁定在正原点 (0,0,0)
+        // 3. 将旋转中心锁定在原点
         if (typeof controls !== 'undefined') {
             controls.target.set(0, 0, 0);
         }
 
-        // 4. 【让模型变大的关键】把相机拉得非常近！
+        // 4. 设置相机距离
         if (typeof camera !== 'undefined') {
-            // 将距离系数从 1.5 缩小到 0.8 甚至 1.0，让模型撑满整个屏幕
-            const distance = maxDim * 0.9; 
+            const distance = maxDim * 1.5; // 放大后用 1.5 倍距离可以完美包裹
             
-            // 相机正对原点 (0,0,0)，高度稍微抬高一点点以便观察全身
+            // 相机正对原点，高度微微抬高对准上半身
             camera.position.set(0, size.y * 0.05, distance);
             
             camera.near = maxDim * 0.001;
@@ -313,7 +315,7 @@ function loadGlbModel() {
                 controls.update();
             }
             
-            console.log("【尺寸重置】模型最大尺寸:", maxDim, "当前相机距离:", distance);
+            console.log("【已缩放并居中】放大倍数:", scaleFactor, "当前相机距离:", distance);
         }
 
         humanModelGroup.add(loadedGlbModel);
